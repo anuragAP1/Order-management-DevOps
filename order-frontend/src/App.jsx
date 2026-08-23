@@ -19,28 +19,40 @@ function App() {
       .catch((error) => console.error('Error fetching orders:', error))
   }
 
-  function handleCreateOrder(event) {
-    event.preventDefault() // stop the browser's default form-submit page reload
+const [errorMessage, setErrorMessage] = useState('')
 
-    const newOrder = {
-      itemName: itemName,
-      quantity: parseInt(quantity),
-      status: 'PENDING'
-    }
+function handleCreateOrder(event) {
+  event.preventDefault()
+  setErrorMessage('') // clear any previous error
 
-    fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newOrder)
-    })
-      .then((response) => response.json())
-      .then(() => {
-        setItemName('')
-        setQuantity('')
-        fetchOrders() // refresh the list after creating
-      })
-      .catch((error) => console.error('Error creating order:', error))
+  const newOrder = {
+    itemName: itemName,
+    quantity: parseInt(quantity),
+    status: 'PENDING'
   }
+
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(newOrder)
+  })
+    .then((response) => {
+      if (!response.ok) {
+        return response.json().then((errBody) => {
+          throw new Error(errBody.error || 'Failed to create order')
+        })
+      }
+      return response.json()
+    })
+    .then(() => {
+      setItemName('')
+      setQuantity('')
+      fetchOrders()
+    })
+    .catch((error) => {
+      setErrorMessage(error.message)
+    })
+}
 
   function handleDeleteOrder(id) {
     fetch(`${API_URL}/${id}`, { method: 'DELETE' })
@@ -68,6 +80,7 @@ function App() {
           required
         />
         <button type="submit">Add Order</button>
+        {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
       </form>
 
       <ul>
